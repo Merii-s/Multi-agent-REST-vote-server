@@ -11,9 +11,11 @@ func BordaSWF(p Profile) (count Count, err error) {
 		return nil, err
 	}
 
+	count = make(Count)
+
 	for i := 0; i < len(p); i++ {
 		for j := 0; j < len(p[i]); j++ {
-			count[p[i][j]] += len(p[i]) - 1 - i
+			count[p[i][j]] += len(p[i]) - j - 1
 		}
 	}
 
@@ -26,10 +28,10 @@ func BordaSCF(p Profile) (bestAlts []Alternative, err error) {
 		return nil, err
 	}
 
-	count := make(map[Alternative]int)
+	count := make(Count)
 	for i := 0; i < len(p); i++ {
 		for j := 0; j < len(p[i]); j++ {
-			count[p[i][j]] += len(p[i]) - 1 - i
+			count[p[i][j]] += len(p[i]) - 1 - j
 		}
 	}
 

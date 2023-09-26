@@ -75,11 +75,18 @@ func checkProfile(prefs Profile) error {
 // vérifie le profil donné, par ex. qu'ils sont tous complets et que chaque alternative de alts apparaît exactement une fois par préférences
 func checkProfileAlternative(prefs Profile, alts []Alternative) error {
 	verif := make(map[Alternative]int)
+	maxLen := 0
+	for _, pref := range prefs {
+		if len(pref) > maxLen {
+			maxLen = len(pref)
+		}
+	}
+
 	for _, pref := range prefs { // Pour chaque votant
 		for _, alt := range pref { // Pour chacune de ses prefs
 			verif[alt]++
 		}
-		if len(verif) != len(pref) {
+		if len(verif) != maxLen {
 			return errors.New("Pas même nombre d'alternatives")
 		} else {
 			for _, alt := range alts {

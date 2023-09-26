@@ -10,6 +10,7 @@ func MajoritySWF(p Profile) (count Count, err error) {
 		return nil, err
 	}
 
+	count = make(Count)
 	for i := range p {
 		count[p[i][0]] += 1
 	}

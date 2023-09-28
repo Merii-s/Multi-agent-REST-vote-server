@@ -28,12 +28,8 @@ func BordaSCF(p Profile) (bestAlts []Alternative, err error) {
 		return nil, err
 	}
 
-	count := make(Count)
-	for i := 0; i < len(p); i++ {
-		for j := 0; j < len(p[i]); j++ {
-			count[p[i][j]] += len(p[i]) - 1 - j
-		}
-	}
+	count, _ := BordaSWF(p)
+	bestAlts = maxCount(count)
 
-	return maxCount(count), err
+	return bestAlts, err
 }

@@ -1,5 +1,7 @@
 package comsoc
 
+import "errors"
+
 //SWF: retourne un décompte (count)
 //SCF: retourne les alternatives préférées
 
@@ -13,11 +15,20 @@ func ApprovalSWF(p Profile, thresholds []int) (count Count, err error) {
 		return nil, err
 	}
 
-	for i := range p {
-		count[p[i][0]] += 1
+	if len(thresholds) != len(p) {
+		return nil, errors.New("len(tresholds) != len(p)")
+	}
+
+	count = make(Count)
+
+	for i, pref := range p {
+		for j := 0; j < thresholds[i]; j++ {
+			count[pref[j]] += 1
+		}
 	}
 
 	return count, err
+
 }
 
 func ApprovalSCF(p Profile, thresholds []int) (bestAlts []Alternative, err error) {
@@ -26,10 +37,8 @@ func ApprovalSCF(p Profile, thresholds []int) (bestAlts []Alternative, err error
 		return nil, err
 	}
 
-	count := make(map[Alternative]int)
-	for i := range p {
-		count[p[i][0]] += 1
-	}
+	count, _ := ApprovalSWF(p, thresholds)
+	bestAlts = maxCount(count)
 
-	return maxCount(count), err
+	return bestAlts, err
 }

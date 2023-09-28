@@ -2,7 +2,9 @@
 
 package comsoc
 
-import "testing"
+import (
+	"testing"
+)
 
 func TestBordaSWF(t *testing.T) {
 	prefs := [][]Alternative{
@@ -119,26 +121,32 @@ func TestApprovalSCF(t *testing.T) {
 	}
 }
 
-// func TestCondorcetWinner(t *testing.T) {
-// 	prefs1 := [][]Alternative{
-// 		{1, 2, 3},
-// 		{1, 2, 3},
-// 		{3, 2, 1},
-// 	}
+func TestCondorcetWinner(t *testing.T) {
+	prefs1 := [][]Alternative{
+		/*{1, 2, 3},
+		{1, 2, 3},
+		{3, 2, 1},*/
+		{0, 1, 2},
+		{0, 1, 2},
+		{2, 1, 0},
+	}
 
-// 	prefs2 := [][]Alternative{
-// 		{1, 2, 3},
-// 		{2, 3, 1},
-// 		{3, 1, 2},
-// 	}
+	prefs2 := [][]Alternative{
+		/*{1, 2, 3},
+		{2, 3, 1},
+		{3, 1, 2},*/
+		{0, 1, 2},
+		{0, 1, 2},
+		{2, 1, 0},
+	}
 
-// 	res1, _ := CondorcetWinner(prefs1)
-// 	res2, _ := CondorcetWinner(prefs2)
+	res1, _ := CondorcetWinner(prefs1)
+	res2, _ := CondorcetWinner(prefs2)
 
-// 	if len(res1) == 0 || res1[0] != 1 {
-// 		t.Errorf("error, 1 should be the only best alternative for prefs1")
-// 	}
-// 	if len(res2) != 0 {
-// 		t.Errorf("no best alternative for prefs2")
-// 	}
-// }
+	if len(res1) == 0 || res1[0] != 1 {
+		t.Errorf("error, 1 should be the only best alternative for prefs1")
+	}
+	if len(res2) != 0 {
+		t.Errorf("no best alternative for prefs2")
+	}
+}

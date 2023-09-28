@@ -25,11 +25,9 @@ func MajoritySCF(p Profile) (bestAlts []Alternative, err error) {
 		return nil, err
 	}
 
-	count := make(map[Alternative]int)
-	for i := range p {
-		count[p[i][0]] += 1
-	}
+	count, _ := MajoritySWF(p)
+	bestAlts = maxCount(count)
 
-	return maxCount(count), err
+	return bestAlts, nil
 
 }

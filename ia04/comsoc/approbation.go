@@ -21,6 +21,13 @@ func ApprovalSWF(p Profile, thresholds []int) (count Count, err error) {
 
 	count = make(Count)
 
+	//initialisation pour que les candidats avec zéro voix apparaissent dans le décompte
+	for _, pref := range p {
+		for _, alt := range pref {
+			count[alt] = 0
+		}
+	}
+
 	for i, pref := range p {
 		for j := 0; j < thresholds[i]; j++ {
 			count[pref[j]] += 1

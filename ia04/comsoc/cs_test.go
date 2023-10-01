@@ -3,6 +3,7 @@
 package comsoc
 
 import (
+	"fmt"
 	"testing"
 )
 
@@ -149,4 +150,27 @@ func TestCondorcetWinner(t *testing.T) {
 	if len(res2) != 0 {
 		t.Errorf("no best alternative for prefs2")
 	}
+}
+
+func TestTieBreak(t *testing.T) {
+	p := Profile{
+		{2, 1, 3, 4, 5, 6},
+		{5, 4, 2, 3, 1, 6},
+		{5, 2, 3, 4, 1, 6},
+		{2, 1, 3, 4, 5, 6},
+		{2, 4, 3, 5, 1, 6},
+		{5, 2, 3, 6, 4, 1},
+	}
+
+	orderedAlts := []Alternative{5, 2, 1, 3, 4, 6}
+
+	fmt.Println("\nCount sans tie-break :")
+	countWithoutTieBreak, _ := MajoritySWF(p)
+	fmt.Println(countWithoutTieBreak)
+
+	fmt.Println("\nRésultat avec tie-break simple:")
+	fmt.Println(SWFFactory(MajoritySWF, TieBreak)(p))
+
+	fmt.Println("\nRésultat avec tie-break factory :")
+	fmt.Println(SWFFactory(MajoritySWF, TieBreakFactory(orderedAlts))(p))
 }

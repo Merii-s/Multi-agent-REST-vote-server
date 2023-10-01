@@ -13,6 +13,13 @@ func BordaSWF(p Profile) (count Count, err error) {
 
 	count = make(Count)
 
+	//initialisation pour que les candidats avec zéro voix apparaissent dans le décompte
+	for _, pref := range p {
+		for _, alt := range pref {
+			count[alt] = 0
+		}
+	}
+
 	for i := 0; i < len(p); i++ {
 		for j := 0; j < len(p[i]); j++ {
 			count[p[i][j]] += len(p[i]) - j - 1

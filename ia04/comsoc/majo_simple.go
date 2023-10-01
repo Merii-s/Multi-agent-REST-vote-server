@@ -11,6 +11,14 @@ func MajoritySWF(p Profile) (count Count, err error) {
 	}
 
 	count = make(Count)
+
+	//initialisation pour que les candidats avec zéro voix apparaissent dans le décompte
+	for _, pref := range p {
+		for _, alt := range pref {
+			count[alt] = 0
+		}
+	}
+
 	for i := range p {
 		count[p[i][0]] += 1
 	}

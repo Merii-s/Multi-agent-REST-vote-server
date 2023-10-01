@@ -2,16 +2,23 @@ package comsoc
 
 import "errors"
 
-func TieBreak(orderedAlts []Alternative) (Alternative, error) {
-	if len(orderedAlts) == 0 {
-		return Alternative(0), errors.New("orderedAlts = nil")
-	}
-	return orderedAlts[0], nil
-}
+func TieBreak([]Alternative) (Alternative, error)
 
 func TieBreakFactory(orderedAlts []Alternative) func([]Alternative) (Alternative, error) {
 	return func(alts []Alternative) (Alternative, error) {
-		return TieBreak(orderedAlts)
+		if len(orderedAlts) == 0 {
+			return Alternative(0), errors.New("orderedAlts = nil")
+		}
+		fav := Alternative(0)
+		for _, pref := range orderedAlts {
+			for _, alt := range alts {
+				if alt == pref {
+					fav = alt
+					break
+				}
+			}
+		}
+		return fav, nil
 	}
 }
 

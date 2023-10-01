@@ -33,9 +33,9 @@ func CondorcetWinner(p Profile) (bestAlts []Alternative, err error) {
 	}
 
 	// Trouver les candidats ayant remporté toutes leurs comparaisons
-	for i := 0; i < nbalt; i++ {
-		if wins[Alternative(i)] == nbalt-1 {
-			bestAlts = append(bestAlts, Alternative(i))
+	for alt, nbwin := range wins {
+		if nbwin == nbalt-1 {
+			bestAlts = append(bestAlts, alt)
 		}
 	}
 

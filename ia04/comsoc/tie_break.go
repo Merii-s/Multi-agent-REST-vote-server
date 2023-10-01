@@ -2,7 +2,7 @@ package comsoc
 
 import "errors"
 
-func TieBreak([]Alternative) (Alternative, error)
+//func TieBreak([]Alternative) (Alternative, error)
 
 func TieBreakFactory(orderedAlts []Alternative) func([]Alternative) (Alternative, error) {
 	return func(alts []Alternative) (Alternative, error) {

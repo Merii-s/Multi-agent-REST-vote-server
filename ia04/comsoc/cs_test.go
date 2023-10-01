@@ -162,8 +162,8 @@ func TestTieBreak(t *testing.T) {
 	countWithoutTieBreak, _ := MajoritySWF(p)
 	fmt.Println(countWithoutTieBreak)
 
-	fmt.Println("\nRésultat avec tie-break simple:")
-	fmt.Println(SWFFactory(MajoritySWF, TieBreak)(p))
+	/*fmt.Println("\nRésultat avec tie-break simple:")
+	fmt.Println(SWFFactory(MajoritySWF, TieBreak)(p))*/
 
 	fmt.Println("\nRésultat avec tie-break factory :")
 	fmt.Println(SWFFactory(MajoritySWF, TieBreakFactory(orderedAlts))(p))

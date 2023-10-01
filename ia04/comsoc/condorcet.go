@@ -8,6 +8,7 @@ func CondorcetWinner(p Profile) (bestAlts []Alternative, err error) {
 	nbalt := len(p[0])
 	// Initialiser un tableau pour compter les victoires de chaque candidat
 	wins := make(Count)
+	// Initialiser un tableau pour compter les victoires durant le 1v1
 	win1v1 := make(Count)
 
 	//Pour chaque 1v1 possible
@@ -25,6 +26,7 @@ func CondorcetWinner(p Profile) (bestAlts []Alternative, err error) {
 				if win1v1[Alternative(i)] > win1v1[Alternative(j)] {
 					wins[Alternative(i)]++
 				}
+				// Réinitialise le nombre de victoire pour le prochain 1v1
 				win1v1 = make(Count)
 			}
 		}

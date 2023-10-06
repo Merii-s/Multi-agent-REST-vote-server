@@ -168,3 +168,27 @@ func TestTieBreak(t *testing.T) {
 	fmt.Println("\nRésultat avec tie-break factory :")
 	fmt.Println(SWFFactory(MajoritySWF, TieBreakFactory(orderedAlts))(p))
 }
+
+func TestCopelandWinner(t *testing.T) {
+	prefs1 := [][]Alternative{
+		{1, 2, 3},
+		{1, 2, 3},
+		{3, 2, 1},
+	}
+
+	prefs2 := [][]Alternative{
+		{1, 2, 3},
+		{2, 3, 1},
+		{3, 1, 2},
+	}
+
+	res1, _ := CopelandtWinner(prefs1)
+	res2, _ := CopelandtWinner(prefs2)
+
+	if len(res1) == 0 || res1[0] != 1 {
+		t.Errorf("error, 1 should be the only best alternative for prefs1")
+	}
+	if len(res2) != 3 {
+		t.Errorf("3 bests alternative for prefs2")
+	}
+}

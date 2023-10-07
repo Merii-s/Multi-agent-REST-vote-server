@@ -13,8 +13,38 @@ func TestBordaSWF(t *testing.T) {
 		{1, 2, 3},
 		{3, 2, 1},
 	}
+	prefs2 := [][]Alternative{
+		{1, 2, 3, 4},
+		{1, 2, 3, 4},
+		{1, 2, 3, 4},
+		{1, 2, 3, 4},
+		{1, 2, 3, 4},
+		{1, 3, 2, 4},
+		{1, 3, 2, 4},
+		{1, 3, 2, 4},
+		{1, 3, 2, 4},
+		{4, 2, 1, 3},
+		{4, 2, 1, 3},
+		{4, 2, 3, 1},
+		{4, 2, 3, 1},
+		{4, 2, 3, 1},
+		{4, 2, 3, 1},
+		{4, 2, 3, 1},
+		{4, 2, 3, 1},
+		{3, 2, 1, 4},
+		{3, 2, 1, 4},
+		{3, 2, 1, 4},
+		{3, 2, 1, 4},
+		{3, 2, 1, 4},
+		{3, 2, 1, 4},
+		{3, 2, 1, 4},
+		{3, 2, 1, 4},
+		{4, 3, 2, 1},
+		{4, 3, 2, 1},
+	}
 
 	res, _ := BordaSWF(prefs)
+	res2, _ := BordaSWF(prefs2)
 
 	if res[1] != 4 {
 		t.Errorf("error, result for 1 should be 4, %d computed", res[1])
@@ -24,6 +54,18 @@ func TestBordaSWF(t *testing.T) {
 	}
 	if res[3] != 2 {
 		t.Errorf("error, result for 3 should be 2, %d computed", res[3])
+	}
+	if res2[1] != 37 {
+		t.Errorf("error, result for 1 should be 37, %d computed", res2[1])
+	}
+	if res2[2] != 48 {
+		t.Errorf("error, result for 2 should be 48, %d computed", res2[2])
+	}
+	if res2[3] != 47 {
+		t.Errorf("error, result for 3 should be 47, %d computed", res2[3])
+	}
+	if res2[4] != 30 {
+		t.Errorf("error, result for 4 should be 30, %d computed", res2[4])
 	}
 }
 
@@ -51,8 +93,32 @@ func TestMajoritySWF(t *testing.T) {
 		{1, 2, 3},
 		{3, 2, 1},
 	}
+	prefs2 := [][]Alternative{
+		{1, 2, 3},
+		{1, 2, 3},
+		{1, 2, 3},
+		{1, 2, 3},
+		{1, 2, 3},
+		{1, 2, 3},
+		{1, 2, 3},
+		{1, 2, 3},
+		{1, 2, 3},
+		{1, 2, 3},
+		{2, 3, 1},
+		{2, 3, 1},
+		{2, 3, 1},
+		{2, 3, 1},
+		{2, 3, 1},
+		{2, 3, 1},
+		{3, 2, 1},
+		{3, 2, 1},
+		{3, 2, 1},
+		{3, 2, 1},
+		{3, 2, 1},
+	}
 
 	res, _ := MajoritySWF(prefs)
+	res2, _ := MajoritySWF(prefs2)
 
 	if res[1] != 2 {
 		t.Errorf("error, result for 1 should be 2, %d computed", res[1])
@@ -62,6 +128,15 @@ func TestMajoritySWF(t *testing.T) {
 	}
 	if res[3] != 1 {
 		t.Errorf("error, result for 3 should be 1, %d computed", res[3])
+	}
+	if res2[1] != 10 {
+		t.Errorf("error, result for 1 should be 10, %d computed", res2[1])
+	}
+	if res2[2] != 6 {
+		t.Errorf("error, result for 2 should be 6, %d computed", res2[2])
+	}
+	if res2[3] != 5 {
+		t.Errorf("error, result for 3 should be 5, %d computed", res2[3])
 	}
 }
 
@@ -135,14 +210,58 @@ func TestCondorcetWinner(t *testing.T) {
 		{3, 1, 2},
 	}
 
+	prefs3 := [][]Alternative{
+		{1, 2, 3},
+		{1, 3, 2},
+		{3, 2, 1},
+	}
+
+	prefs4 := [][]Alternative{
+		{1, 2, 3, 4},
+		{1, 2, 3, 4},
+		{1, 2, 3, 4},
+		{1, 2, 3, 4},
+		{1, 2, 3, 4},
+		{1, 3, 2, 4},
+		{1, 3, 2, 4},
+		{1, 3, 2, 4},
+		{1, 3, 2, 4},
+		{4, 2, 1, 3},
+		{4, 2, 1, 3},
+		{4, 2, 3, 1},
+		{4, 2, 3, 1},
+		{4, 2, 3, 1},
+		{4, 2, 3, 1},
+		{4, 2, 3, 1},
+		{4, 2, 3, 1},
+		{3, 2, 1, 4},
+		{3, 2, 1, 4},
+		{3, 2, 1, 4},
+		{3, 2, 1, 4},
+		{3, 2, 1, 4},
+		{3, 2, 1, 4},
+		{3, 2, 1, 4},
+		{3, 2, 1, 4},
+		{4, 3, 2, 1},
+		{4, 3, 2, 1},
+	}
+
 	res1, _ := CondorcetWinner(prefs1)
 	res2, _ := CondorcetWinner(prefs2)
+	res3, _ := CondorcetWinner(prefs3)
+	res4, _ := CondorcetWinner(prefs4)
 
 	if len(res1) == 0 || res1[0] != 1 {
 		t.Errorf("error, 1 should be the only best alternative for prefs1")
 	}
 	if len(res2) != 0 {
 		t.Errorf("no best alternative for prefs2")
+	}
+	if len(res3) == 0 || res3[0] != 1 {
+		t.Errorf("error, 1 should be the only best alternative for prefs3")
+	}
+	if len(res4) == 0 || res4[0] != 3 {
+		t.Errorf("error, 3 should be the only best alternative for prefs4")
 	}
 }
 
@@ -182,13 +301,32 @@ func TestCopelandWinner(t *testing.T) {
 		{3, 1, 2},
 	}
 
+	prefs3 := [][]Alternative{
+		{1, 2, 3, 4},
+		{1, 2, 3, 4},
+		{1, 2, 3, 4},
+		{1, 2, 3, 4},
+		{1, 2, 3, 4},
+		{2, 3, 4, 1},
+		{2, 3, 4, 1},
+		{2, 3, 4, 1},
+		{2, 3, 4, 1},
+		{4, 3, 1, 2},
+		{4, 3, 1, 2},
+		{4, 3, 1, 2},
+	}
+
 	res1, _ := CopelandtWinner(prefs1)
 	res2, _ := CopelandtWinner(prefs2)
+	res3, _ := CopelandtWinner(prefs3)
 
 	if len(res1) == 0 || res1[0] != 1 {
 		t.Errorf("error, 1 should be the only best alternative for prefs1")
 	}
 	if len(res2) != 3 {
 		t.Errorf("3 bests alternative for prefs2")
+	}
+	if len(res3) != 2 {
+		t.Errorf("error, 2 best alternatives for prefs3")
 	}
 }

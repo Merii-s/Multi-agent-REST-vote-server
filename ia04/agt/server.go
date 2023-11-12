@@ -3,15 +3,13 @@ package agt
 import (
 	"bytes"
 	"encoding/json"
+	"errors"
 	"fmt"
 	"log"
 	"net/http"
 	"sync"
 	"time"
-
-	//"ai30-systeme-de-vote/ia04/comsoc"
-
-	rad "gitlab.utc.fr/lagruesy/ia04/demos/restagentdemo"
+	//rad "gitlab.utc.fr/lagruesy/ia04/demos/restagentdemo"
 )
 
 var ballotIdNumber = 0
@@ -24,7 +22,7 @@ type RestServerAgent struct {
 }
 
 func NewRestServerAgent(addr string) *RestServerAgent {
-	return &RestServerAgent{addr: addr}
+	return &RestServerAgent{addr: addr, ballots: make(map[string]*RestBallotAgent, 0)}
 }
 
 // Test de la méthode
@@ -61,26 +59,25 @@ func (rsa *RestServerAgent) doNewBallot(w http.ResponseWriter, r *http.Request) 
 		fmt.Fprint(w, err.Error())
 		return
 	}
-	// BadRequest : Deadline passée
-	if req.Deadline < time.Now().String() || req.NbAlts < 1 {
-		w.WriteHeader(http.StatusBadRequest)
-		fmt.Fprint(w, err.Error())
-		return
-	}
-	// BadRequest : TieBreak erroné
-	if checkTieBreak(req.NbAlts, req.TieBreak) {
-		w.WriteHeader(http.StatusBadRequest)
-		fmt.Fprint(w, err.Error())
-		return
-	}
 
-	// BadRequest : voter_ids inconnus ?
+	// BadRequest : Deadline passée
+	var date, err1 = time.Parse(time.RFC3339, req.Deadline)
+	if err1 != nil || date.Before(time.Now()) || date.Equal(time.Now()) {
+		w.WriteHeader(http.StatusBadRequest)
+		fmt.Fprint(w, errors.New(" Deadline erronée"))
+		return
+	}
+	// BadRequest : TieBreak erroné ou NombreAlts
+	if CheckTieBreak(req.NbAlts, req.TieBreak) || req.NbAlts < 1 {
+		w.WriteHeader(http.StatusBadRequest)
+		fmt.Fprint(w, errors.New(" TieBreak erroné ou NombreAlts"))
+		return
+	}
 
 	// NotImplemented : Rule non implémentée
 	// const avec les règles ?
 
 	// Création du nouveau scrutin
-	var resp rad.Response
 
 	ballotIdNumber += 1
 	ballotId := fmt.Sprintf("%s%d", "scrutin", ballotIdNumber)
@@ -89,7 +86,7 @@ func (rsa *RestServerAgent) doNewBallot(w http.ResponseWriter, r *http.Request) 
 	rsa.ballots[ballotId] = newBallot
 
 	w.WriteHeader(http.StatusOK)
-	serial, _ := json.Marshal(resp)
+	serial, _ := json.Marshal(ballotId)
 	w.Write(serial)
 }
 

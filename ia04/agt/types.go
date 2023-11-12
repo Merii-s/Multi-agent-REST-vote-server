@@ -11,14 +11,11 @@ type ResponseVote struct {
 type RequestNewBallot struct {
 	Rule     string   `json:"rule"`
 	Deadline string   `json:"deadline"`
-	VoterIds []string `json:"voter_ids"`
-	NbAlts   int      `json:"nb_alts"`
-	TieBreak []int    `json:"tie_break"`
+	VoterIds []string `json:"voter-ids"`
+	NbAlts   int      `json:"alts"`
+	TieBreak []int    `json:"tie-break"`
 }
 
 type ResponseBallot struct {
 	CodeRetour string `json:"code"`
 }
-
-type Alternative int
-type Profile [][]Alternative

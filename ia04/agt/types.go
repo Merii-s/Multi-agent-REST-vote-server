@@ -15,7 +15,3 @@ type RequestNewBallot struct {
 	NbAlts   int      `json:"alts"`
 	TieBreak []int    `json:"tie-break"`
 }
-
-type ResponseBallot struct {
-	CodeRetour string `json:"code"`
-}

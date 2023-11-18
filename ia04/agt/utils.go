@@ -14,3 +14,12 @@ func CheckTieBreak(nb_alts int, tieBreak []int) bool {
 	}
 	return false
 }
+
+func Contains(arr []string, value string) bool {
+	for _, v := range arr {
+		if v == value {
+			return true
+		}
+	}
+	return false
+}

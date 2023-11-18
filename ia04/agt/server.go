@@ -21,6 +21,8 @@ type RestServerAgent struct {
 	ballots map[string]*RestBallotAgent
 }
 
+var rules = []string{"approval", "borda", "condorcet", "copeland", "majorite_simple"}
+
 func NewRestServerAgent(addr string) *RestServerAgent {
 	return &RestServerAgent{addr: addr, ballots: make(map[string]*RestBallotAgent, 0)}
 }
@@ -75,8 +77,11 @@ func (rsa *RestServerAgent) doNewBallot(w http.ResponseWriter, r *http.Request) 
 	}
 
 	// NotImplemented : Rule non implémentée
-	// const avec les règles ?
-
+	if !Contains(rules, req.Rule) {
+		w.WriteHeader(http.StatusNotImplemented)
+		fmt.Fprint(w, errors.New(fmt.Sprintf("Rule non implémentée, choisissez parmi %v", rules)))
+		return
+	}
 	// Création du nouveau scrutin
 
 	ballotIdNumber += 1

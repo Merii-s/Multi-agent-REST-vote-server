@@ -19,3 +19,11 @@ type RequestNewBallot struct {
 type ResponseBallot struct {
 	CodeRetour string `json:"code"`
 }
+
+// VoteRequest représente la structure des données JSON pour la requête de vote
+type VoteRequest struct {
+	AgentID  string `json:"agent-id"`
+	BallotID string `json:"ballot-id"`
+	Prefs    []int  `json:"prefs"`
+	Options  []int  `json:"options"`
+}

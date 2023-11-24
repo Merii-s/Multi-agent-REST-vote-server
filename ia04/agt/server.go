@@ -82,7 +82,14 @@ func (rsa *RestServerAgent) doNewBallot(w http.ResponseWriter, r *http.Request) 
 
 	ballotIdNumber += 1
 	ballotId := fmt.Sprintf("%s%d", "scrutin", ballotIdNumber)
-	newBallot := NewRestBallotAgent(ballotId, req.Rule, req.Deadline, req.VoterIds, req.NbAlts, req.TieBreak)
+
+	// Récupération des IDs des votants dans une map
+	voterIds := make(map[string]bool)
+	for _, voterId := range req.VoterIds {
+		voterIds[voterId] = false
+	}
+
+	newBallot := NewRestBallotAgent(ballotId, req.Rule, req.Deadline, voterIds, req.NbAlts, req.TieBreak)
 
 	rsa.ballots[ballotId] = newBallot
 
@@ -109,20 +116,15 @@ func (rsa *RestServerAgent) doVote(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	// Vérification si le scrutin existe
-	if _, ok := rsa.ballots[voteReq.BallotID]; !ok {
-		w.WriteHeader(http.StatusBadRequest)
-		fmt.Fprint(w, "Scrutin non trouvé")
-		return
-	}
-
-	// Vérification de la deadline du scrutin
+	// Vérification de l'existence du scrutin
 	ballot, ok := rsa.ballots[voteReq.BallotID]
 	if !ok {
 		w.WriteHeader(http.StatusBadRequest)
 		fmt.Fprint(w, "Scrutin non trouvé")
 		return
 	}
+
+	// Vérification de la deadline du scrutin
 	deadline, _ := time.Parse(time.RFC3339, ballot.deadline)
 	if time.Now().After(deadline) {
 		w.WriteHeader(http.StatusServiceUnavailable)
@@ -130,18 +132,33 @@ func (rsa *RestServerAgent) doVote(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	// Vérification si l'agent a déjà voté
-	if rsa.hasAgentVoted(voteReq.AgentID, voteReq.BallotID) {
+	// Vérification si l'agent a le droit de voter
+	if _, exists := ballot.voter_ids[voteReq.AgentID]; !exists {
+		w.WriteHeader(http.StatusForbidden)
+		fmt.Fprint(w, "Agent non autorisé à voter pour ce scrutin")
+		return
+	}
+
+	// Vérification du vote déjà effectué
+	if ballot.voter_ids[voteReq.AgentID] {
 		w.WriteHeader(http.StatusForbidden)
 		fmt.Fprint(w, "Vote de cet agent déjà effectué")
 		return
 	}
 
-	// NotImplemented : Vérification d'options facultatives ici (par exemple, seuil d'acceptation en approval)
-	if CheckOptions(voteReq.Options) {
-		w.WriteHeader(http.StatusBadRequest)
-		fmt.Fprint(w, errors.New(" Options erronées"))
-		return
+	// Vérification des options
+	if ballot.rule == "approval" {
+		if len(voteReq.Options) == 0 {
+			w.WriteHeader(http.StatusBadRequest)
+			fmt.Fprint(w, "Options non renseignées pour la rule 'approval'")
+			return
+		}
+	} else {
+		if len(voteReq.Options) > 0 {
+			w.WriteHeader(http.StatusBadRequest)
+			fmt.Fprint(w, "Options spécifiées pour une rule autre que 'approval'")
+			return
+		}
 	}
 
 	// Effectuer le vote
@@ -151,37 +168,68 @@ func (rsa *RestServerAgent) doVote(w http.ResponseWriter, r *http.Request) {
 	fmt.Fprint(w, "Vote enregistré")
 }
 
-// hasAgentVoted vérifie si l'agent a déjà voté pour ce scrutin
-func (rsa *RestServerAgent) hasAgentVoted(agentID, ballotID string) bool {
-	// Vérifie si l'agent est dans la liste des votants pour ce scrutin
-	ballot, _ := rsa.ballots[ballotID]
-	for _, voterID := range ballot.voter_ids {
-		if voterID == agentID {
-			return true
-		}
-	}
-	return false
-}
-
-// Cette méthode doit être implémentée dans RestBallotAgent pour permettre le vote
+// Enregistrement du vote
 func (rba *RestBallotAgent) Vote(agentID string, pref, options []int) {
-	// Si l'agent est autorisé à voter, enregistrement du vote en ajoutant l'agent à la liste des votants
-	rba.voter_ids = append(rba.voter_ids, agentID)
+	rba.voter_ids[agentID] = true
 	fmt.Println("Vote enregistré pour l'agent", agentID)
 }
 
-// CheckOptions vérifie si les options sont valides
-func CheckOptions(options []int) bool {
-	// Implémentez votre logique pour vérifier si les options sont valides
-	// Retourne true si les options sont valides, sinon false
-	return false
+func (rsa *RestServerAgent) doResult(w http.ResponseWriter, r *http.Request) {
+	// lock le serveur
+	rsa.Lock()
+	defer rsa.Unlock()
+
+	// Vérification de la méthode de la requête
+	if !rsa.checkMethod("POST", w, r) {
+		return
+	}
+
+	// décodage de la requête
+	var resultReq ResultRequest
+	if err := json.NewDecoder(r.Body).Decode(&resultReq); err != nil {
+		w.WriteHeader(http.StatusBadRequest)
+		fmt.Fprint(w, err.Error())
+		return
+	}
+
+	// Vérification de l'existence du scrutin
+	ballot, ok := rsa.ballots[resultReq.BallotID]
+	if !ok {
+		w.WriteHeader(http.StatusNotFound)
+		fmt.Fprint(w, "Scrutin non trouvé")
+		return
+	}
+
+	// Vérification de la deadline du scrutin
+	deadline, _ := time.Parse(time.RFC3339, ballot.deadline)
+	if time.Now().Before(deadline) {
+		w.WriteHeader(http.StatusTooEarly)
+		fmt.Fprint(w, "La deadline n'est pas encore passée")
+		return
+	}
+
+	winner := ballot.GetWinner()
+
+	response := map[string]int{
+		"winner": winner,
+	}
+
+	serial, _ := json.Marshal(response)
+	w.WriteHeader(http.StatusOK)
+	w.Write(serial)
+}
+
+func (rba *RestBallotAgent) GetWinner() int {
+	// Not Implemented
+	return -1
 }
 
 func (rsa *RestServerAgent) Start() {
 	// création du multiplexer
 	mux := http.NewServeMux()
 	mux.HandleFunc("/new_ballot", rsa.doNewBallot)
-	mux.HandleFunc("/vote", rsa.doVote) // Ajout de l'endpoint /vote
+	mux.HandleFunc("/vote", rsa.doVote)
+	mux.HandleFunc("/result", rsa.doResult)
 
 	// création du serveur http
 	s := &http.Server{

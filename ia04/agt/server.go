@@ -1,6 +1,7 @@
 package agt
 
 import (
+	comsoc "ai30/ia04/comsoc"
 	"bytes"
 	"encoding/json"
 	"errors"
@@ -202,21 +203,16 @@ func (rsa *RestServerAgent) doVote(w http.ResponseWriter, r *http.Request) {
 
 // Enregistrement du vote
 func (rba *RestBallotAgent) Vote(agentID string, pref, options []int) {
-	// Ajout des préférences au profil
+	// Ajout des préférences au profil (on ne prend pas en compte l'ordre des agt_id)
 	voterIdNumber += 1
 	for i := 0; i < len(pref); i++ {
 		rba.profile[voterIdNumber-1][i] = pref[i]
 	}
 
-	// // Affichage du profil après l'enregistrement du vote
-	// fmt.Println("Profil après enregistrement du vote de l'agent", agentID)
-	// for _, row := range rba.profile {
-	// 	fmt.Println(row)
-	// }
-
 	// Marquer l'agent comme ayant voté
 	rba.voter_ids[agentID] = true
 	fmt.Println("Vote enregistré pour l'agent", agentID)
+	// fmt.Println("Profil après enregistrement du vote de l'agent", rba.profile)
 }
 
 func (rsa *RestServerAgent) doResult(w http.ResponseWriter, r *http.Request) {
@@ -255,8 +251,14 @@ func (rsa *RestServerAgent) doResult(w http.ResponseWriter, r *http.Request) {
 
 	winner := ballot.GetWinner()
 
+	if winner == -1 {
+		w.WriteHeader(http.StatusNotFound)
+		fmt.Fprint(w, "Gagnant non trouvé")
+		return
+	}
+
 	response := map[string]int{
-		"winner": winner,
+		"winner": int(winner),
 	}
 
 	serial, _ := json.Marshal(response)
@@ -264,8 +266,73 @@ func (rsa *RestServerAgent) doResult(w http.ResponseWriter, r *http.Request) {
 	w.Write(serial)
 }
 
-func (rba *RestBallotAgent) GetWinner() int {
-	// Not Implemented
+// Troncation du profil : élimine les lignes vides (abstention)
+func trimProfile(profile [][]int) [][]int {
+	// Recherche de la première ligne nulle dans le profil
+	trimmedIndex := len(profile)
+	for i, row := range profile {
+		nullRow := true
+		for _, val := range row {
+			if val != 0 {
+				nullRow = false
+				break
+			}
+		}
+		if nullRow {
+			trimmedIndex = i
+			break
+		}
+	}
+
+	// Tronquer le profil jusqu'à la première ligne nulle
+	return profile[:trimmedIndex]
+}
+
+// Conversion de [][]int en [][]Alternative
+func convertToAlternative(profile [][]int) comsoc.Profile {
+	result := make(comsoc.Profile, len(profile))
+	for i := range profile {
+		result[i] = make([]comsoc.Alternative, len(profile[i]))
+		for j := range profile[i] {
+			result[i][j] = comsoc.Alternative(profile[i][j])
+		}
+	}
+	// fmt.Println("Profil converti en [][]Alternative : ", result)
+	return result
+}
+
+func (rba *RestBallotAgent) GetWinner() comsoc.Alternative {
+	// Filtrer le profil en fonction des colonnes non vides
+	trimedProfile := trimProfile(rba.profile)
+
+	//fmt.Println("Profil filtré : ", trimedProfile)
+
+	// Conversion du profil filtré en [][]Alternative
+	trimedProfileAlt := convertToAlternative(trimedProfile)
+
+	//fmt.Println("Profil filtré converti en alternative : ", trimedProfileAlt)
+
+	switch rba.rule {
+	case "majority":
+		bestAlts, err := comsoc.MajoritySCF(trimedProfileAlt)
+		if err != nil || len(bestAlts) == 0 {
+			return -1
+		}
+		return bestAlts[0]
+	case "borda":
+		bestAlts, err := comsoc.BordaSCF(trimedProfileAlt)
+		if err != nil || len(bestAlts) == 0 {
+			return -1
+		}
+		return bestAlts[0]
+	case "approval":
+		bestAlts, err := comsoc.ApprovalSCF(trimedProfileAlt, rba.tie_break)
+		if err != nil || len(bestAlts) == 0 {
+			return -1
+		}
+		return bestAlts[0]
+	}
+
 	return -1
 }
 

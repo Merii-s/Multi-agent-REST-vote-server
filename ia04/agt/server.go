@@ -13,6 +13,7 @@ import (
 )
 
 var ballotIdNumber = 0
+var voterIdNumber = 0
 
 type RestServerAgent struct {
 	sync.Mutex
@@ -89,7 +90,22 @@ func (rsa *RestServerAgent) doNewBallot(w http.ResponseWriter, r *http.Request) 
 		voterIds[voterId] = false
 	}
 
-	newBallot := NewRestBallotAgent(ballotId, req.Rule, req.Deadline, voterIds, req.NbAlts, req.TieBreak)
+	// Initialisation des préférences avec une structure Profile vide pour chaque votant
+	profile := make([][]int, len(req.VoterIds))
+	for i := range profile {
+		profile[i] = make([]int, req.NbAlts)
+	}
+
+	newBallot := NewRestBallotAgent(ballotId, req.Rule, req.Deadline, voterIds, req.NbAlts, req.TieBreak, profile)
+
+	// // Print de test des attributs de RestBallotAgent
+	// fmt.Println("ID:", newBallot.id)
+	// fmt.Println("Rule:", newBallot.rule)
+	// fmt.Println("Deadline:", newBallot.deadline)
+	// fmt.Println("Voter IDs:", newBallot.voter_ids)
+	// fmt.Println("Alts number:", newBallot.alts_number)
+	// fmt.Println("Tie break:", newBallot.tie_break)
+	// fmt.Println("Profile:", newBallot.profile)
 
 	rsa.ballots[ballotId] = newBallot
 
@@ -154,9 +170,8 @@ func (rsa *RestServerAgent) doVote(w http.ResponseWriter, r *http.Request) {
 	}
 
 	// Vérification que les préférences du voteur sont des candidats existants pour le scrutin
-	// candidats numérotés de 0 à alts_number-1 (?)
 	for _, pref := range voteReq.Prefs {
-		if pref < 0 || pref >= ballot.alts_number {
+		if pref < 1 || pref > ballot.alts_number {
 			w.WriteHeader(http.StatusBadRequest)
 			fmt.Fprint(w, "Vote pour un candidat inexistant dans le scrutin")
 			return
@@ -187,6 +202,19 @@ func (rsa *RestServerAgent) doVote(w http.ResponseWriter, r *http.Request) {
 
 // Enregistrement du vote
 func (rba *RestBallotAgent) Vote(agentID string, pref, options []int) {
+	// Ajout des préférences au profil
+	voterIdNumber += 1
+	for i := 0; i < len(pref); i++ {
+		rba.profile[voterIdNumber-1][i] = pref[i]
+	}
+
+	// // Affichage du profil après l'enregistrement du vote
+	// fmt.Println("Profil après enregistrement du vote de l'agent", agentID)
+	// for _, row := range rba.profile {
+	// 	fmt.Println(row)
+	// }
+
+	// Marquer l'agent comme ayant voté
 	rba.voter_ids[agentID] = true
 	fmt.Println("Vote enregistré pour l'agent", agentID)
 }

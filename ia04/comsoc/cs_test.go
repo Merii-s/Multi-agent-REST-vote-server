@@ -120,6 +120,9 @@ func TestMajoritySWF(t *testing.T) {
 	res, _ := MajoritySWF(prefs)
 	res2, _ := MajoritySWF(prefs2)
 
+	// fmt.Print(res)
+	// fmt.Print(res2)
+
 	if res[1] != 2 {
 		t.Errorf("error, result for 1 should be 2, %d computed", res[1])
 	}

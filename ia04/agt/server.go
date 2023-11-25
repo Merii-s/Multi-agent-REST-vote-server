@@ -1,6 +1,7 @@
 package agt
 
 import (
+	comsoc "ai30/ia04/comsoc"
 	"bytes"
 	"encoding/json"
 	"errors"
@@ -13,6 +14,7 @@ import (
 )
 
 var ballotIdNumber = 0
+var voterIdNumber = 0
 
 type RestServerAgent struct {
 	sync.Mutex
@@ -69,6 +71,7 @@ func (rsa *RestServerAgent) doNewBallot(w http.ResponseWriter, r *http.Request) 
 		fmt.Fprint(w, errors.New(" Deadline erronée"))
 		return
 	}
+
 	// BadRequest : TieBreak erroné ou NombreAlts
 	if CheckTieBreak(req.NbAlts, req.TieBreak) || req.NbAlts < 1 {
 		w.WriteHeader(http.StatusBadRequest)
@@ -86,7 +89,29 @@ func (rsa *RestServerAgent) doNewBallot(w http.ResponseWriter, r *http.Request) 
 
 	ballotIdNumber += 1
 	ballotId := fmt.Sprintf("%s%d", "scrutin", ballotIdNumber)
-	newBallot := NewRestBallotAgent(ballotId, req.Rule, req.Deadline, req.VoterIds, req.NbAlts, req.TieBreak)
+
+	// Récupération des IDs des votants dans une map
+	voterIds := make(map[string]bool)
+	for _, voterId := range req.VoterIds {
+		voterIds[voterId] = false
+	}
+
+	// Initialisation des préférences avec une structure Profile vide pour chaque votant
+	profile := make([][]int, len(req.VoterIds))
+	for i := range profile {
+		profile[i] = make([]int, req.NbAlts)
+	}
+
+	newBallot := NewRestBallotAgent(ballotId, req.Rule, req.Deadline, voterIds, req.NbAlts, req.TieBreak, profile)
+
+	// // Print de test des attributs de RestBallotAgent
+	// fmt.Println("ID:", newBallot.id)
+	// fmt.Println("Rule:", newBallot.rule)
+	// fmt.Println("Deadline:", newBallot.deadline)
+	// fmt.Println("Voter IDs:", newBallot.voter_ids)
+	// fmt.Println("Alts number:", newBallot.alts_number)
+	// fmt.Println("Tie break:", newBallot.tie_break)
+	// fmt.Println("Profile:", newBallot.profile)
 
 	rsa.ballots[ballotId] = newBallot
 
@@ -95,10 +120,233 @@ func (rsa *RestServerAgent) doNewBallot(w http.ResponseWriter, r *http.Request) 
 	w.Write(serial)
 }
 
+func (rsa *RestServerAgent) doVote(w http.ResponseWriter, r *http.Request) {
+	// lock le serveur
+	rsa.Lock()
+	defer rsa.Unlock()
+
+	// vérification de la méthode de la requête
+	if !rsa.checkMethod("POST", w, r) {
+		return
+	}
+
+	// décodage de la requête
+	var voteReq VoteRequest
+	if err := json.NewDecoder(r.Body).Decode(&voteReq); err != nil {
+		w.WriteHeader(http.StatusBadRequest)
+		fmt.Fprint(w, err.Error())
+		return
+	}
+
+	// Vérification de l'existence du scrutin
+	ballot, ok := rsa.ballots[voteReq.BallotID]
+	if !ok {
+		w.WriteHeader(http.StatusBadRequest)
+		fmt.Fprint(w, "Scrutin non trouvé")
+		return
+	}
+
+	// Vérification de la deadline du scrutin
+	deadline, _ := time.Parse(time.RFC3339, ballot.deadline)
+	if time.Now().After(deadline) {
+		w.WriteHeader(http.StatusServiceUnavailable)
+		fmt.Fprint(w, "La deadline est passée")
+		return
+	}
+
+	// Vérification si l'agent a le droit de voter
+	if _, exists := ballot.voter_ids[voteReq.AgentID]; !exists {
+		w.WriteHeader(http.StatusForbidden)
+		fmt.Fprint(w, "Agent non autorisé à voter pour ce scrutin")
+		return
+	}
+
+	// Vérification si agent a déjà voté
+	if ballot.voter_ids[voteReq.AgentID] {
+		w.WriteHeader(http.StatusForbidden)
+		fmt.Fprint(w, "Vote de cet agent déjà effectué")
+		return
+	}
+
+	// Vérification du nombre de candidats dans les préférences du voteur
+	if len(voteReq.Prefs) != ballot.alts_number {
+		w.WriteHeader(http.StatusBadRequest)
+		fmt.Fprint(w, "Préférences incomplètes")
+		return
+	}
+
+	// Vérification que les préférences du voteur sont des candidats existants pour le scrutin
+	for _, pref := range voteReq.Prefs {
+		if pref < 1 || pref > ballot.alts_number {
+			w.WriteHeader(http.StatusBadRequest)
+			fmt.Fprint(w, "Vote pour un candidat inexistant dans le scrutin")
+			return
+		}
+	}
+
+	// Vérification des options
+	if ballot.rule == "approval" {
+		if len(voteReq.Options) == 0 {
+			w.WriteHeader(http.StatusBadRequest)
+			fmt.Fprint(w, "Options non renseignées pour la rule 'approval'")
+			return
+		}
+	} else {
+		if len(voteReq.Options) > 0 {
+			w.WriteHeader(http.StatusBadRequest)
+			fmt.Fprint(w, "Options spécifiées pour une rule autre que 'approval'")
+			return
+		}
+	}
+
+	// Effectuer le vote
+	ballot.Vote(voteReq.AgentID, voteReq.Prefs, voteReq.Options)
+
+	w.WriteHeader(http.StatusOK)
+	fmt.Fprint(w, "Vote enregistré")
+}
+
+// Enregistrement du vote
+func (rba *RestBallotAgent) Vote(agentID string, pref, options []int) {
+	// Ajout des préférences au profil (on ne prend pas en compte l'ordre des agt_id)
+	voterIdNumber += 1
+	for i := 0; i < len(pref); i++ {
+		rba.profile[voterIdNumber-1][i] = pref[i]
+	}
+
+	// Marquer l'agent comme ayant voté
+	rba.voter_ids[agentID] = true
+	fmt.Println("Vote enregistré pour l'agent", agentID)
+	// fmt.Println("Profil après enregistrement du vote de l'agent", rba.profile)
+}
+
+func (rsa *RestServerAgent) doResult(w http.ResponseWriter, r *http.Request) {
+	// lock le serveur
+	rsa.Lock()
+	defer rsa.Unlock()
+
+	// Vérification de la méthode de la requête
+	if !rsa.checkMethod("POST", w, r) {
+		return
+	}
+
+	// décodage de la requête
+	var resultReq ResultRequest
+	if err := json.NewDecoder(r.Body).Decode(&resultReq); err != nil {
+		w.WriteHeader(http.StatusBadRequest)
+		fmt.Fprint(w, err.Error())
+		return
+	}
+
+	// Vérification de l'existence du scrutin
+	ballot, ok := rsa.ballots[resultReq.BallotID]
+	if !ok {
+		w.WriteHeader(http.StatusNotFound)
+		fmt.Fprint(w, "Scrutin non trouvé")
+		return
+	}
+
+	// Vérification de la deadline du scrutin
+	deadline, _ := time.Parse(time.RFC3339, ballot.deadline)
+	if time.Now().Before(deadline) {
+		w.WriteHeader(http.StatusTooEarly)
+		fmt.Fprint(w, "La deadline n'est pas encore passée")
+		return
+	}
+
+	winner := ballot.GetWinner()
+
+	if winner == -1 {
+		w.WriteHeader(http.StatusNotFound)
+		fmt.Fprint(w, "Gagnant non trouvé")
+		return
+	}
+
+	response := map[string]int{
+		"winner": int(winner),
+	}
+
+	serial, _ := json.Marshal(response)
+	w.WriteHeader(http.StatusOK)
+	w.Write(serial)
+}
+
+// Troncation du profil : élimine les lignes vides (abstention)
+func trimProfile(profile [][]int) [][]int {
+	// Recherche de la première ligne nulle dans le profil
+	trimmedIndex := len(profile)
+	for i, row := range profile {
+		nullRow := true
+		for _, val := range row {
+			if val != 0 {
+				nullRow = false
+				break
+			}
+		}
+		if nullRow {
+			trimmedIndex = i
+			break
+		}
+	}
+
+	// Tronquer le profil jusqu'à la première ligne nulle
+	return profile[:trimmedIndex]
+}
+
+// Conversion de [][]int en [][]Alternative
+func convertToAlternative(profile [][]int) comsoc.Profile {
+	result := make(comsoc.Profile, len(profile))
+	for i := range profile {
+		result[i] = make([]comsoc.Alternative, len(profile[i]))
+		for j := range profile[i] {
+			result[i][j] = comsoc.Alternative(profile[i][j])
+		}
+	}
+	// fmt.Println("Profil converti en [][]Alternative : ", result)
+	return result
+}
+
+func (rba *RestBallotAgent) GetWinner() comsoc.Alternative {
+	// Filtrer le profil en fonction des colonnes non vides
+	trimedProfile := trimProfile(rba.profile)
+
+	//fmt.Println("Profil filtré : ", trimedProfile)
+
+	// Conversion du profil filtré en [][]Alternative
+	trimedProfileAlt := convertToAlternative(trimedProfile)
+
+	//fmt.Println("Profil filtré converti en alternative : ", trimedProfileAlt)
+
+	switch rba.rule {
+	case "majority":
+		bestAlts, err := comsoc.MajoritySCF(trimedProfileAlt)
+		if err != nil || len(bestAlts) == 0 {
+			return -1
+		}
+		return bestAlts[0]
+	case "borda":
+		bestAlts, err := comsoc.BordaSCF(trimedProfileAlt)
+		if err != nil || len(bestAlts) == 0 {
+			return -1
+		}
+		return bestAlts[0]
+	case "approval":
+		bestAlts, err := comsoc.ApprovalSCF(trimedProfileAlt, rba.tie_break)
+		if err != nil || len(bestAlts) == 0 {
+			return -1
+		}
+		return bestAlts[0]
+	}
+
+	return -1
+}
+
 func (rsa *RestServerAgent) Start() {
 	// création du multiplexer
 	mux := http.NewServeMux()
 	mux.HandleFunc("/new_ballot", rsa.doNewBallot)
+	mux.HandleFunc("/vote", rsa.doVote)
+	mux.HandleFunc("/result", rsa.doResult)
 
 	// création du serveur http
 	s := &http.Server{

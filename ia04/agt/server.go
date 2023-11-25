@@ -139,11 +139,28 @@ func (rsa *RestServerAgent) doVote(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	// Vérification du vote déjà effectué
+	// Vérification si agent a déjà voté
 	if ballot.voter_ids[voteReq.AgentID] {
 		w.WriteHeader(http.StatusForbidden)
 		fmt.Fprint(w, "Vote de cet agent déjà effectué")
 		return
+	}
+
+	// Vérification du nombre de candidats dans les préférences du voteur
+	if len(voteReq.Prefs) != ballot.alts_number {
+		w.WriteHeader(http.StatusBadRequest)
+		fmt.Fprint(w, "Préférences incomplètes")
+		return
+	}
+
+	// Vérification que les préférences du voteur sont des candidats existants pour le scrutin
+	// candidats numérotés de 0 à alts_number-1 (?)
+	for _, pref := range voteReq.Prefs {
+		if pref < 0 || pref >= ballot.alts_number {
+			w.WriteHeader(http.StatusBadRequest)
+			fmt.Fprint(w, "Vote pour un candidat inexistant dans le scrutin")
+			return
+		}
 	}
 
 	// Vérification des options

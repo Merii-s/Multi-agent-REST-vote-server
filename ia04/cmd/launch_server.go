@@ -1,12 +1,9 @@
 package main
 
 import (
+	agt "ai30/ia04/agt"
 	"fmt"
 	"log"
-
-	//comsoc "ia04/comsoc"
-	//agt "gitlab.utc.fr/benyouzar/ai30-systeme-de-vote/-/tree/main/ia04/agt"
-	agt "ai30/ia04/agt"
 )
 
 func main() {

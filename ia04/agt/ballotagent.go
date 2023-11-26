@@ -14,7 +14,7 @@ type RestBallotAgent struct {
 	alts_number int
 	tie_break   []int
 	profile     [][]int
-	votedNumber int
+	options     []int
 }
 
 func NewRestBallotAgent(id string, rule string, deadline string, voter_ids map[string]bool, alts_number int, tie_break []int, profile [][]int) *RestBallotAgent {
@@ -40,7 +40,6 @@ func (rca *RestBallotAgent) Start() {
 // Enregistrement du vote
 func (rba *RestBallotAgent) Vote(agentID string, pref, options []int) {
 	// Ajout des préférences au profil (on ne prend pas en compte l'ordre des agt_id)
-	rba.votedNumber += 1
 	//rba.profile[rba.votedNumber-1] = pref
 	rba.profile = append(rba.profile, pref)
 
@@ -51,32 +50,45 @@ func (rba *RestBallotAgent) Vote(agentID string, pref, options []int) {
 }
 
 // Obtention du gagnant
-func (rba *RestBallotAgent) GetWinner() comsoc.Alternative {
+func (rba *RestBallotAgent) GetWinner() (winner comsoc.Alternative, ranking []comsoc.Alternative) {
 	// Conversion du profil en [][]Alternative
 	profileAlt := convertToAlternative(rba.profile)
+	tieBreak := comsoc.TieBreakFactory(convertToAlternativeTieBreak(rba.tie_break))
+
+	var swf func(p comsoc.Profile) ([]comsoc.Alternative, error)
+	var scf func(p comsoc.Profile) (comsoc.Alternative, error)
 
 	switch rba.rule {
 	case "majority":
-		tieBreak := comsoc.TieBreakFactory(convertToAlternativeTieBreak(rba.tie_break))
-		SCFMajo := comsoc.SCFFactory(comsoc.MajoritySCF, tieBreak)
-		bestAlt, err := SCFMajo(profileAlt)
-		if err != nil {
-			return -1
-		}
-		return bestAlt
+		scf = comsoc.SCFFactory(comsoc.MajoritySCF, tieBreak)
+		swf = comsoc.SWFFactory(comsoc.MajoritySWF, tieBreak)
+
 	case "borda":
-		bestAlts, err := comsoc.BordaSCF(profileAlt)
-		if err != nil || len(bestAlts) == 0 {
-			return -1
-		}
-		return bestAlts[0]
+		scf = comsoc.SCFFactory(comsoc.BordaSCF, tieBreak)
+		swf = comsoc.SWFFactory(comsoc.BordaSWF, tieBreak)
+
+	case "condorcet":
+		scf = comsoc.SCFFactory(comsoc.CondorcetWinner, tieBreak)
+		swf = nil
+
+	case "copeland":
+		scf = comsoc.SCFFactory(comsoc.CopelandWinner, tieBreak)
+		swf = nil
+
 	case "approval":
-		bestAlts, err := comsoc.ApprovalSCF(profileAlt, rba.tie_break)
-		if err != nil || len(bestAlts) == 0 {
-			return -1
+		ranking := make([]comsoc.Alternative, 0)
+		count, _ := comsoc.ApprovalSWF(profileAlt, rba.options)
+		for len(count) > 0 {
+			best_alts := comsoc.MaxCount(count)
+			best, _ := tieBreak(best_alts)
+			ranking = append(ranking, best)
+			delete(count, best)
 		}
-		return bestAlts[0]
+		return ranking[0], ranking
 	}
 
-	return -1
+	winner, _ = scf(profileAlt)
+	ranking, _ = swf(profileAlt)
+
+	return winner, ranking
 }

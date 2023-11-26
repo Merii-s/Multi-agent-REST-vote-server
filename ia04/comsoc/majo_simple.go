@@ -34,7 +34,7 @@ func MajoritySCF(p Profile) (bestAlts []Alternative, err error) {
 	}
 
 	count, _ := MajoritySWF(p)
-	bestAlts = maxCount(count)
+	bestAlts = MaxCount(count)
 
 	return bestAlts, nil
 

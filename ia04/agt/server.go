@@ -84,8 +84,8 @@ func (rsa *RestServerAgent) doNewBallot(w http.ResponseWriter, r *http.Request) 
 		fmt.Fprint(w, errors.New(fmt.Sprintf("Rule non implémentée, choisissez parmi %v", rules)))
 		return
 	}
-	// Création du nouveau scrutin
 
+	// Création du nouveau scrutin
 	ballotIdNumber += 1
 	ballotId := fmt.Sprintf("%s%d", "scrutin", ballotIdNumber)
 
@@ -102,15 +102,6 @@ func (rsa *RestServerAgent) doNewBallot(w http.ResponseWriter, r *http.Request) 
 	}
 
 	newBallot := NewRestBallotAgent(ballotId, req.Rule, req.Deadline, voterIds, req.NbAlts, req.TieBreak, profile)
-
-	// // Print de test des attributs de RestBallotAgent
-	// fmt.Println("ID:", newBallot.id)
-	// fmt.Println("Rule:", newBallot.rule)
-	// fmt.Println("Deadline:", newBallot.deadline)
-	// fmt.Println("Voter IDs:", newBallot.voter_ids)
-	// fmt.Println("Alts number:", newBallot.alts_number)
-	// fmt.Println("Tie break:", newBallot.tie_break)
-	// fmt.Println("Profile:", newBallot.profile)
 
 	rsa.ballots[ballotId] = newBallot
 
@@ -181,9 +172,10 @@ func (rsa *RestServerAgent) doVote(w http.ResponseWriter, r *http.Request) {
 			fmt.Fprint(w, "Options non renseignées pour la rule 'approval'")
 			return
 		}
+		rsa.ballots[voteReq.BallotID].options = append(rsa.ballots[voteReq.BallotID].options, voteReq.Options[0])
 	} else {
 		if len(voteReq.Options) > 0 {
-			w.WriteHeader(http.StatusBadRequest)
+			w.WriteHeader(http.StatusNotImplemented)
 			fmt.Fprint(w, "Options spécifiées pour une rule autre que 'approval'")
 			return
 		}
@@ -230,7 +222,7 @@ func (rsa *RestServerAgent) doResult(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	winner := ballot.GetWinner()
+	winner, ranking := ballot.GetWinner()
 
 	if winner == -1 {
 		w.WriteHeader(http.StatusNotFound)
@@ -238,8 +230,15 @@ func (rsa *RestServerAgent) doResult(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	response := map[string]int{
-		"winner": int(winner),
+	// Convert []Alternative to []int
+	var intRanking []int
+	for _, alt := range ranking {
+		intRanking = append(intRanking, int(alt))
+	}
+
+	response := map[string]interface{}{
+		"winner":  int(winner),
+		"ranking": intRanking,
 	}
 
 	serial, _ := json.Marshal(response)

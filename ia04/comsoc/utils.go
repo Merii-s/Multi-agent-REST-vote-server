@@ -27,19 +27,19 @@ func isPref(alt1, alt2 Alternative, prefs []Alternative) bool {
 }
 
 // renvoie les meilleures alternatives pour un décompte donné
-func maxCount(count Count) (bestAlts []Alternative) {
-	var maxCount int
+func MaxCount(count Count) (bestAlts []Alternative) {
+	var MaxCount int
 
 	// Find the maximum count value.
 	for _, nb := range count {
-		if nb > maxCount {
-			maxCount = nb
+		if nb > MaxCount {
+			MaxCount = nb
 		}
 	}
 
 	// Collect alternatives with the maximum count.
 	for alt, nb := range count {
-		if nb == maxCount {
+		if nb == MaxCount {
 			bestAlts = append(bestAlts, alt)
 		}
 	}

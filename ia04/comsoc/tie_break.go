@@ -1,6 +1,9 @@
 package comsoc
 
-import "errors"
+import (
+	"errors"
+	"sort"
+)
 
 //func TieBreak([]Alternative) (Alternative, error)
 
@@ -30,12 +33,24 @@ func SWFFactory(swf func(Profile) (Count, error), tieBreak func([]Alternative) (
 			return nil, err
 		}
 
-		best, err := tieBreak(maxCount(count))
-		if err != nil {
-			return nil, err
+		// Create a slice of keys from the map
+		var rankedAlts []Alternative
+		for key := range count {
+			rankedAlts = append(rankedAlts, key)
 		}
 
-		return []Alternative{best}, nil
+		// Sort the keys based on map values in descending order
+		sort.Slice(rankedAlts, func(i, j int) bool {
+			return count[rankedAlts[i]] > count[rankedAlts[j]]
+		})
+
+		// Create a slice of integers in descending order based on map values
+		var result []Alternative
+		for _, key := range rankedAlts {
+			result = append(result, key)
+		}
+
+		return rankedAlts, nil
 	}
 }
 

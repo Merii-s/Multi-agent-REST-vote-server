@@ -319,9 +319,9 @@ func TestCopelandWinner(t *testing.T) {
 		{4, 3, 1, 2},
 	}
 
-	res1, _ := CopelandtWinner(prefs1)
-	res2, _ := CopelandtWinner(prefs2)
-	res3, _ := CopelandtWinner(prefs3)
+	res1, _ := CopelandWinner(prefs1)
+	res2, _ := CopelandWinner(prefs2)
+	res3, _ := CopelandWinner(prefs3)
 
 	if len(res1) == 0 || res1[0] != 1 {
 		t.Errorf("error, 1 should be the only best alternative for prefs1")

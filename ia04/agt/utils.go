@@ -28,6 +28,7 @@ func CheckAlternativeConsistency(nb_alts int, tieBreak []int) bool {
 	return false
 }
 
+// return true if value is in arr
 func Contains(arr []string, value string) bool {
 	for _, v := range arr {
 		if v == value {

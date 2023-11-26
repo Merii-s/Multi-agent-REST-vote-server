@@ -17,6 +17,8 @@ type RestBallotAgent struct {
 	options     []int
 }
 
+var noSWFRules = []string{"condorcet", "copeland"}
+
 func NewRestBallotAgent(id string, rule string, deadline string, voter_ids map[string]bool, alts_number int, tie_break []int, profile [][]int) *RestBallotAgent {
 	return &RestBallotAgent{
 		id:          id,
@@ -74,7 +76,6 @@ func (rba *RestBallotAgent) GetWinner() (winner comsoc.Alternative, ranking []co
 	case "copeland":
 		scf = comsoc.SCFFactory(comsoc.CopelandWinner, tieBreak)
 		swf = nil
-
 	case "approval":
 		ranking := make([]comsoc.Alternative, 0)
 		count, _ := comsoc.ApprovalSWF(profileAlt, rba.options)
@@ -88,7 +89,10 @@ func (rba *RestBallotAgent) GetWinner() (winner comsoc.Alternative, ranking []co
 	}
 
 	winner, _ = scf(profileAlt)
-	ranking, _ = swf(profileAlt)
+	if !Contains(noSWFRules, rba.rule) {
+		ranking, _ = swf(profileAlt)
+		return winner, ranking
+	}
 
 	return winner, ranking
 }

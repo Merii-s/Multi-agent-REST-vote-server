@@ -10,11 +10,12 @@ func TieBreakFactory(orderedAlts []Alternative) func([]Alternative) (Alternative
 			return Alternative(0), errors.New("orderedAlts = nil")
 		}
 		fav := Alternative(0)
+	Loop:
 		for _, pref := range orderedAlts {
 			for _, alt := range alts {
 				if alt == pref {
 					fav = alt
-					break
+					break Loop
 				}
 			}
 		}

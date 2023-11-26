@@ -10,7 +10,7 @@ Pour lancer le serveur : go run .\ia04\cmd\launch_server.go
 
 Les méthodes de vote possibles sur le serveur sont :
 - Majorité simple (`"majority"`)
-- Borda (borda) (`"borda"`)
+- Borda (`"borda"`)
 - Elire le gagnant de Condorcet s'il existe (`"condorcet"`)
 - Copeland (`"copeland"`)
 - Aproval (`"approval"`)

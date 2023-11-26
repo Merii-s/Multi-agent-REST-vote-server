@@ -28,24 +28,30 @@ func isPref(alt1, alt2 Alternative, prefs []Alternative) bool {
 
 // renvoie les meilleures alternatives pour un décompte donné
 func maxCount(count Count) (bestAlts []Alternative) {
-	for alt, nb := range count {
-		if len(bestAlts) == 0 {
-			bestAlts = append(bestAlts, alt)
-		}
-		for _, best := range bestAlts {
-			if nb > count[best] {
-				bestAlts = make([]Alternative, 0)
-				bestAlts = append(bestAlts, alt)
-			} else if nb == count[best] && alt != best {
-				bestAlts = append(bestAlts, alt)
-			}
+	var maxCount int
+
+	// Find the maximum count value.
+	for _, nb := range count {
+		if nb > maxCount {
+			maxCount = nb
 		}
 	}
+
+	// Collect alternatives with the maximum count.
+	for alt, nb := range count {
+		if nb == maxCount {
+			bestAlts = append(bestAlts, alt)
+		}
+	}
+
 	return
 }
 
 // vérifie le profil donné, par ex. qu'ils sont tous complets et que chaque alternative n'apparaît qu'une seule fois par préférences
 func checkProfile(prefs Profile) error {
+	if len(prefs) == 0 {
+		return errors.New("Aucun votant pour ce scrutin")
+	}
 	verif := make(map[Alternative]int)
 	maxLen := 0
 	altUsed := make(map[Alternative]bool)

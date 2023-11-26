@@ -1,6 +1,6 @@
 package agt
 
-func CheckTieBreak(nb_alts int, tieBreak []int) bool {
+func CheckAlternativeConsistency(nb_alts int, tieBreak []int) bool {
 
 	verif := make(map[int]int)
 

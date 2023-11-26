@@ -72,7 +72,7 @@ func (rsa *RestServerAgent) doNewBallot(w http.ResponseWriter, r *http.Request) 
 	}
 
 	// BadRequest : TieBreak erroné ou NombreAlts
-	if CheckTieBreak(req.NbAlts, req.TieBreak) || req.NbAlts < 1 {
+	if CheckAlternativeConsistency(req.NbAlts, req.TieBreak) || req.NbAlts < 1 {
 		w.WriteHeader(http.StatusBadRequest)
 		fmt.Fprint(w, errors.New(" TieBreak erroné ou NombreAlts"))
 		return
@@ -96,7 +96,7 @@ func (rsa *RestServerAgent) doNewBallot(w http.ResponseWriter, r *http.Request) 
 	}
 
 	// Initialisation des préférences avec une structure Profile vide pour chaque votant
-	profile := make([][]int, len(req.VoterIds))
+	profile := make([][]int, 0)
 	for i := range profile {
 		profile[i] = make([]int, req.NbAlts)
 	}
@@ -168,7 +168,7 @@ func (rsa *RestServerAgent) doVote(w http.ResponseWriter, r *http.Request) {
 	}
 
 	// Vérification des préférences du votant
-	if CheckTieBreak(rsa.ballots[voteReq.BallotID].alts_number, voteReq.Prefs) {
+	if CheckAlternativeConsistency(rsa.ballots[voteReq.BallotID].alts_number, voteReq.Prefs) {
 		w.WriteHeader(http.StatusBadRequest)
 		fmt.Fprint(w, "Préférences erronnées")
 		return
@@ -194,18 +194,6 @@ func (rsa *RestServerAgent) doVote(w http.ResponseWriter, r *http.Request) {
 
 	w.WriteHeader(http.StatusOK)
 	fmt.Fprint(w, "Vote enregistré")
-}
-
-// Enregistrement du vote
-func (rba *RestBallotAgent) Vote(agentID string, pref, options []int) {
-	// Ajout des préférences au profil (on ne prend pas en compte l'ordre des agt_id)
-	rba.votedNumber += 1
-	rba.profile[rba.votedNumber-1] = pref
-
-	// Marquer l'agent comme ayant voté
-	rba.voter_ids[agentID] = true
-	fmt.Println("Vote enregistré pour l'agent", agentID)
-	// fmt.Println("Profil après enregistrement du vote de l'agent", rba.profile)
 }
 
 func (rsa *RestServerAgent) doResult(w http.ResponseWriter, r *http.Request) {
@@ -259,28 +247,6 @@ func (rsa *RestServerAgent) doResult(w http.ResponseWriter, r *http.Request) {
 	w.Write(serial)
 }
 
-// Troncation du profil : élimine les lignes vides (abstention)
-func trimProfile(profile [][]int) [][]int {
-	// Recherche de la première ligne nulle dans le profil
-	trimmedIndex := len(profile)
-	for i, row := range profile {
-		nullRow := true
-		for _, val := range row {
-			if val != 0 {
-				nullRow = false
-				break
-			}
-		}
-		if nullRow {
-			trimmedIndex = i
-			break
-		}
-	}
-
-	// Tronquer le profil jusqu'à la première ligne nulle
-	return profile[:trimmedIndex]
-}
-
 // Conversion de [][]int en [][]Alternative
 func convertToAlternative(profile [][]int) comsoc.Profile {
 	result := make(comsoc.Profile, len(profile))
@@ -294,39 +260,12 @@ func convertToAlternative(profile [][]int) comsoc.Profile {
 	return result
 }
 
-func (rba *RestBallotAgent) GetWinner() comsoc.Alternative {
-	// Filtrer le profil en fonction des colonnes non vides
-	trimedProfile := trimProfile(rba.profile)
-
-	//fmt.Println("Profil filtré : ", trimedProfile)
-
-	// Conversion du profil filtré en [][]Alternative
-	trimedProfileAlt := convertToAlternative(trimedProfile)
-
-	//fmt.Println("Profil filtré converti en alternative : ", trimedProfileAlt)
-
-	switch rba.rule {
-	case "majority":
-		bestAlts, err := comsoc.MajoritySCF(trimedProfileAlt)
-		if err != nil || len(bestAlts) == 0 {
-			return -1
-		}
-		return bestAlts[0]
-	case "borda":
-		bestAlts, err := comsoc.BordaSCF(trimedProfileAlt)
-		if err != nil || len(bestAlts) == 0 {
-			return -1
-		}
-		return bestAlts[0]
-	case "approval":
-		bestAlts, err := comsoc.ApprovalSCF(trimedProfileAlt, rba.tie_break)
-		if err != nil || len(bestAlts) == 0 {
-			return -1
-		}
-		return bestAlts[0]
+func convertToAlternativeTieBreak(profile []int) []comsoc.Alternative {
+	result := make([]comsoc.Alternative, 0)
+	for _, alt := range profile {
+		result = append(result, comsoc.Alternative(alt))
 	}
-
-	return -1
+	return result
 }
 
 func (rsa *RestServerAgent) Start() {

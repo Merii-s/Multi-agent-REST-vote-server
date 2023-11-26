@@ -14,7 +14,6 @@ import (
 )
 
 var ballotIdNumber = 0
-var voterIdNumber = 0
 
 type RestServerAgent struct {
 	sync.Mutex
@@ -23,7 +22,7 @@ type RestServerAgent struct {
 	ballots map[string]*RestBallotAgent
 }
 
-var rules = []string{"approval", "borda", "condorcet", "copeland", "majorite_simple"}
+var rules = []string{"approval", "borda", "condorcet", "copeland", "majority"}
 
 func NewRestServerAgent(addr string) *RestServerAgent {
 	return &RestServerAgent{addr: addr, ballots: make(map[string]*RestBallotAgent, 0)}
@@ -168,20 +167,11 @@ func (rsa *RestServerAgent) doVote(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	// Vérification du nombre de candidats dans les préférences du voteur
-	if len(voteReq.Prefs) != ballot.alts_number {
+	// Vérification des préférences du votant
+	if CheckTieBreak(rsa.ballots[voteReq.BallotID].alts_number, voteReq.Prefs) {
 		w.WriteHeader(http.StatusBadRequest)
-		fmt.Fprint(w, "Préférences incomplètes")
+		fmt.Fprint(w, "Préférences erronnées")
 		return
-	}
-
-	// Vérification que les préférences du voteur sont des candidats existants pour le scrutin
-	for _, pref := range voteReq.Prefs {
-		if pref < 1 || pref > ballot.alts_number {
-			w.WriteHeader(http.StatusBadRequest)
-			fmt.Fprint(w, "Vote pour un candidat inexistant dans le scrutin")
-			return
-		}
 	}
 
 	// Vérification des options
@@ -209,10 +199,8 @@ func (rsa *RestServerAgent) doVote(w http.ResponseWriter, r *http.Request) {
 // Enregistrement du vote
 func (rba *RestBallotAgent) Vote(agentID string, pref, options []int) {
 	// Ajout des préférences au profil (on ne prend pas en compte l'ordre des agt_id)
-	voterIdNumber += 1
-	for i := 0; i < len(pref); i++ {
-		rba.profile[voterIdNumber-1][i] = pref[i]
-	}
+	rba.votedNumber += 1
+	rba.profile[rba.votedNumber-1] = pref
 
 	// Marquer l'agent comme ayant voté
 	rba.voter_ids[agentID] = true

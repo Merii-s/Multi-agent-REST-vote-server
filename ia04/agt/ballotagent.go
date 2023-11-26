@@ -12,6 +12,7 @@ type RestBallotAgent struct {
 	alts_number int
 	tie_break   []int
 	profile     [][]int
+	votedNumber int
 }
 
 func NewRestBallotAgent(id string, rule string, deadline string, voter_ids map[string]bool, alts_number int, tie_break []int, profile [][]int) *RestBallotAgent {
